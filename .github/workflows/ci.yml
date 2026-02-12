@@ -38,6 +38,7 @@ jobs:
 
       - name: Kitabxanaları yüklə
         run: uv sync
+             uv pip install "psycopg[binary]"
 
       - name: Verilənlər bazası miqrasiyalarını yoxla
         env:
