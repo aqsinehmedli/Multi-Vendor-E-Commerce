@@ -1,0 +1,52 @@
+name: Mega Market CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      # Verilənlər bazasını test mühiti üçün qaldırırıq
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: mega_market_db
+          POSTGRES_USER: mega_admin
+          POSTGRES_PASSWORD: mega_pass123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Kodu kopyala
+        uses: actions/checkout@v4
+
+      - name: Python və UV quraşdır
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Kitabxanaları yüklə
+        run: uv sync
+
+      - name: Verilənlər bazası miqrasiyalarını yoxla
+        env:
+          DATABASE_URL: postgres://mega_admin:mega_pass123@localhost:5432/mega_market_db
+          SECRET_KEY: "ci-test-key"
+          DEBUG: "True"
+        run: |
+          uv run python manage.py makemigrations --check
+          uv run python manage.py migrate
+
+      - name: Testləri işə sal (Hələlik sadə yoxlanış)
+        run: uv run python manage.py check
